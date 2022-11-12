@@ -12,6 +12,7 @@ const { UserProxy, ProjectProxy, MockProxy } = require('../proxy')
 
 const jwtSecret = config.get('jwt.secret')
 const jwtExpire = config.get('jwt.expire')
+const openRegister = config.get('openRegister')
 
 async function createUser (name, password) {
   const user = await UserProxy.newAndSave(name, password)
@@ -58,11 +59,13 @@ module.exports = class UserController {
       return
     }
 
-    const newPassword = util.bhash(password)
-
-    await createUser(name, newPassword)
-
-    ctx.body = ctx.util.resuccess()
+    if (!openRegister) {
+      ctx.body = ctx.util.refail('注册已关闭！')
+      return
+    }else{
+        await createUser(name, newPassword)
+        ctx.body = ctx.util.resuccess() 
+    }
   }
 
   /**
@@ -94,7 +97,12 @@ module.exports = class UserController {
         ldapUtil.closeClient(ldapClient)
       }
       if (verifyPassword && !user) {
-        user = await createUser(name, util.bhash(password))
+        if (!openRegister) {
+          ctx.body = ctx.util.refail('注册已关闭！')
+          return
+        }else{
+          user = await createUser(name, util.bhash(password))
+        }
       }
     } else {
       if (!user) {
